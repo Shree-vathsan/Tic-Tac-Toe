@@ -1,111 +1,153 @@
-import React, { useRef, useState } from 'react'
-import './TicTacToe.css'
-import circle_icon from '../Assets/circle.png'
-import cross_icon from '../Assets/cross.png'
+import React, { useRef, useState, useEffect } from 'react';
+import './TicTacToe.css';
+import circle_icon from '../Assets/circle.png';
+import cross_icon from '../Assets/cross.png';
 
-let data = ["", "", "", "", "", "", "", ""]
+let data = ['', '', '', '', '', '', '', '', ''];
 
 const TicTacToe = () => {
-  let [count, setCount] = useState(0);
-  let [lock, setLock] = useState(false);
-  let titleRef = useRef(null);
-  let box1 = useRef(null);
-  let box2 = useRef(null);
-  let box3 = useRef(null);
-  let box4 = useRef(null);
-  let box5 = useRef(null);
-  let box6 = useRef(null);
-  let box7 = useRef(null);
-  let box8 = useRef(null);
-  let box9 = useRef(null);
+  const [count, setCount] = useState(0);
+  const [lock, setLock] = useState(false);
+  const [currentPlayer, setCurrentPlayer] = useState('Player 1');
+  const [timer, setTimer] = useState(10);
+  const [scores, setScores] = useState({ Player1: 0, Player2: 0 });
 
-  let box_array = [box1,box2,box3,box4,box5,box6,box7,box8,box9];
-  const toggle = (e, num) => {
-    if (lock) {
-      return 0;
+  const titleRef = useRef(null);
+  const boxRefs = [
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+  ];
+
+  // Timer logic
+  useEffect(() => {
+    if (!lock) {
+      const countdown = setInterval(() => {
+        setTimer((prev) => {
+          if (prev === 1) {
+            // Switch turns if timer runs out
+            switchTurn();
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(countdown);
     }
+  }, [lock]);
+
+  const switchTurn = () => {
+    setCount((prevCount) => prevCount + 1);
+    setCurrentPlayer((prev) => (prev === 'Player 1' ? 'Player 2' : 'Player 1'));
+  };
+
+  const toggle = (e, num) => {
+    if (lock || data[num] !== '') {
+      return; // Prevent further clicks if box is already clicked or game is locked
+    }
+
     if (count % 2 === 0) {
       e.target.innerHTML = `<img src='${cross_icon}' alt="" />`;
       data[num] = 'x';
-      setCount(count + 1);
     } else {
       e.target.innerHTML = `<img src='${circle_icon}' alt="" />`;
       data[num] = 'o';
-      setCount(count + 1);
     }
-    checkWin();
-  }
-    const checkWin=()=>{
-      if(data[0]===data[1] && data[1]===data[2] && data[2]!==""){
-        won(data[2]);
-      }
-      else if(data[3]===data[4] && data[4]===data[5] && data[5]!==""){
-        won(data[5]);
-      }
-      else if(data[6]===data[7] && data[7]===data[8] && data[8]!==""){
-        won(data[8]);
-      }
-      else if(data[0]===data[3] && data[3]===data[6] && data[6]!==""){
-        won(data[6]);
-      }
-      else if(data[1]===data[4] && data[4]===data[7] && data[7]!==""){
-        won(data[7]);
-      }
-      else if(data[2]===data[5] && data[5]===data[8] && data[8]!==""){
-        won(data[8]);
-      }
-      else if(data[0]===data[4] && data[4]===data[8] && data[8]!==""){
-        won(data[8]);
-      }
-      else if(data[0]===data[1] && data[1]===data[2] && data[2]!==""){
-        won(data[2]);
-      }
-      else if(data[2]===data[4] && data[4]===data[6] && data[6]!==""){
-        won(data[6]);
-      }
-      
 
+    checkWin();
+    switchTurn();
+  };
+
+  const checkWin = () => {
+    const winningConditions = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
+
+    for (let [a, b, c] of winningConditions) {
+      if (data[a] === data[b] && data[b] === data[c] && data[a] !== '') {
+        highlightWinner([a, b, c]);
+        won(data[a]);
+        return;
+      }
     }
-  const won=(winner)=>{
+
+    // Check for draw
+    if (data.every((item) => item !== '') && !lock) {
+      titleRef.current.innerHTML = "It's a Draw!";
+      setLock(true);
+    }
+  };
+
+  const highlightWinner = (winningCombination) => {
+    winningCombination.forEach((index) => {
+      boxRefs[index].current.classList.add('highlight');
+    });
+  };
+
+  const won = (winner) => {
     setLock(true);
-    if(winner==="x"){
-      titleRef.current.innerHTML=`Congratulations: <img src=${cross_icon}> Wins`; 
+    if (winner === 'x') {
+      titleRef.current.innerHTML = 'Player 1 Wins!';
+      setScores((prev) => ({ ...prev, Player1: prev.Player1 + 1 }));
+    } else {
+      titleRef.current.innerHTML = 'Player 2 Wins!';
+      setScores((prev) => ({ ...prev, Player2: prev.Player2 + 1 }));
     }
-    else{
-      titleRef.current.innerHTML=`Congratulations: <img src=${circle_icon}> Wins`;
-    }
-  }
-  const reset=()=>{
+  };
+
+  const reset = () => {
     setLock(false);
-    data=["","","","","","","","",""];
-    titleRef.current.innerHTML='Tic-Tac<span>-Toe</spam>'
-    box_array.map((e)=>{
-      e.current.innerHTML="";
-    })
-  }
+    data = ['', '', '', '', '', '', '', '', ''];
+    titleRef.current.innerHTML = 'Tic-Tac<span>-Toe</span>';
+    setCount(0);
+    setCurrentPlayer('Player 1');
+    setTimer(10); // Reset timer
+    boxRefs.forEach((boxRef) => {
+      boxRef.current.innerHTML = ''; // Clear the board
+      boxRef.current.classList.remove('highlight'); // Remove highlights
+    });
+  };
+
   return (
     <div className='container'>
-      <h1 className="title" ref={titleRef}>Tic-Tac-<span>Toe</span></h1>
-      <div className="board">
-        <div className="row1">
-          <div className="boxes" ref={box1} onClick={(e) => { toggle(e, 0) }}></div>
-          <div className="boxes" ref={box2} onClick={(e) => { toggle(e, 1) }}></div>
-          <div className="boxes" ref={box3} onClick={(e) => { toggle(e, 2) }}></div>
-        </div>
-        <div className="row2">
-          <div className="boxes" ref={box4} onClick={(e) => { toggle(e, 3) }}></div>
-          <div className="boxes" ref={box5} onClick={(e) => { toggle(e, 4) }}></div>
-          <div className="boxes" ref={box6} onClick={(e) => { toggle(e, 5) }}></div>
-        </div>
-        <div className="row3">
-          <div className="boxes" ref={box7} onClick={(e) => { toggle(e, 6) }}></div>
-          <div className="boxes" ref={box8} onClick={(e) => { toggle(e, 7) }}></div>
-          <div className="boxes" ref={box9} onClick={(e) => { toggle(e, 8) }}></div>
-        </div>
+      <h1 className='title' ref={titleRef}>
+        Tic-Tac<span>-Toe</span>
+      </h1>
+      <div className='info'>
+        <p>{currentPlayer}'s Turn</p>
+        <p>Time Left: {timer} sec</p>
+        <p>
+          Player 1 (X): {scores.Player1} | Player 2 (O): {scores.Player2}
+        </p>
       </div>
-      <button className='reset' onClick={()=>{reset()}}>Reset</button>
+      <div className='board'>
+        {boxRefs.map((boxRef, index) => (
+          <div
+            key={index}
+            className='boxes'
+            ref={boxRef}
+            onClick={(e) => toggle(e, index)}
+          ></div>
+        ))}
+      </div>
+      <button className='reset' onClick={reset}>
+        Reset
+      </button>
     </div>
-  )
-}
+  );
+};
 
-export default TicTacToe
+export default TicTacToe;
