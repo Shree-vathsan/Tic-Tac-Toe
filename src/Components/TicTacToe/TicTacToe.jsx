@@ -3,69 +3,72 @@ import './TicTacToe.css';
 import circle_icon from '../Assets/circle.png';
 import cross_icon from '../Assets/cross.png';
 
-let data = ['', '', '', '', '', '', '', '', ''];
-
 const TicTacToe = () => {
   const [count, setCount] = useState(0);
   const [lock, setLock] = useState(false);
-  const [currentPlayer, setCurrentPlayer] = useState('Player 1');
-  const [timer, setTimer] = useState(10);
-  const [scores, setScores] = useState({ Player1: 0, Player2: 0 });
+  const [timer, setTimer] = useState(10); // 10-second timer
+  const [score, setScore] = useState({ player1: 0, player2: 0 });
 
   const titleRef = useRef(null);
-  const boxRefs = [
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-  ];
+  const boxRefs = useRef(Array(9).fill(null).map(() => React.createRef())); // Initialize refs for each box
+  const timerInterval = useRef(null);
 
-  // Timer logic
+  let data = useRef(Array(9).fill('')); // Use ref for data to avoid unnecessary re-renders
+
   useEffect(() => {
     if (!lock) {
-      const countdown = setInterval(() => {
-        setTimer((prev) => {
-          if (prev === 1) {
-            // Switch turns if timer runs out
-            switchTurn();
-            return 10;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(countdown);
+      resetTimer();
+      startTimer();
     }
-  }, [lock]);
+    return () => clearInterval(timerInterval.current);
+  }, [count, lock]);
 
-  const switchTurn = () => {
-    setCount((prevCount) => prevCount + 1);
-    setCurrentPlayer((prev) => (prev === 'Player 1' ? 'Player 2' : 'Player 1'));
+  const resetTimer = () => {
+    setTimer(10); // Reset timer to 10 seconds
+    clearInterval(timerInterval.current);
   };
 
-  const toggle = (e, num) => {
-    if (lock || data[num] !== '') {
-      return; // Prevent further clicks if box is already clicked or game is locked
+  const startTimer = () => {
+    timerInterval.current = setInterval(() => {
+      setTimer((prev) => {
+        if (prev === 1) {
+          clearInterval(timerInterval.current);
+          declareTimeoutWinner();
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const declareTimeoutWinner = () => {
+    const winner = count % 2 === 0 ? 'Player 2' : 'Player 1';
+    setLock(true);
+    titleRef.current.textContent = `${winner} Wins! Timeout`;
+    updateScore(winner === 'Player 1' ? 'player1' : 'player2');
+  };
+
+  const toggle = (index) => {
+    if (lock || data.current[index] !== '') {
+      return;
     }
 
-    if (count % 2 === 0) {
-      e.target.innerHTML = `<img src='${cross_icon}' alt="" />`;
-      data[num] = 'x';
-    } else {
-      e.target.innerHTML = `<img src='${circle_icon}' alt="" />`;
-      data[num] = 'o';
-    }
+    resetTimer(); // Reset timer on valid move
+    clearInterval(timerInterval.current); // Clear existing timer
 
+    const currentPlayer = count % 2 === 0 ? 'x' : 'o';
+    data.current[index] = currentPlayer;
+
+    const box = boxRefs.current[index];
+    box.current.innerHTML = `<img src='${
+      currentPlayer === 'x' ? cross_icon : circle_icon
+    }' alt='' />`;
+
+    setCount(count + 1);
     checkWin();
-    switchTurn();
   };
 
   const checkWin = () => {
-    const winningConditions = [
+    const winningCombinations = [
       [0, 1, 2],
       [3, 4, 5],
       [6, 7, 8],
@@ -76,74 +79,81 @@ const TicTacToe = () => {
       [2, 4, 6],
     ];
 
-    for (let [a, b, c] of winningConditions) {
-      if (data[a] === data[b] && data[b] === data[c] && data[a] !== '') {
-        highlightWinner([a, b, c]);
-        won(data[a]);
+    for (let combo of winningCombinations) {
+      const [a, b, c] = combo;
+      if (
+        data.current[a] &&
+        data.current[a] === data.current[b] &&
+        data.current[b] === data.current[c]
+      ) {
+        highlightWinningCombination(combo);
+        declareWinner(data.current[a]);
         return;
       }
     }
 
-    // Check for draw
-    if (data.every((item) => item !== '') && !lock) {
-      titleRef.current.innerHTML = "It's a Draw!";
+    if (!data.current.includes('')) {
       setLock(true);
+      titleRef.current.textContent = `It's a Draw!`;
     }
   };
 
-  const highlightWinner = (winningCombination) => {
-    winningCombination.forEach((index) => {
-      boxRefs[index].current.classList.add('highlight');
-    });
-  };
-
-  const won = (winner) => {
+  const declareWinner = (winner) => {
     setLock(true);
-    if (winner === 'x') {
-      titleRef.current.innerHTML = 'Player 1 Wins!';
-      setScores((prev) => ({ ...prev, Player1: prev.Player1 + 1 }));
-    } else {
-      titleRef.current.innerHTML = 'Player 2 Wins!';
-      setScores((prev) => ({ ...prev, Player2: prev.Player2 + 1 }));
-    }
+    titleRef.current.textContent =
+      winner === 'x' ? 'Player 1 Wins!' : 'Player 2 Wins!';
+    updateScore(winner === 'x' ? 'player1' : 'player2');
+    clearInterval(timerInterval.current);
+  };
+
+  const updateScore = (winner) => {
+    setScore((prev) => ({
+      ...prev,
+      [winner]: prev[winner] + 1,
+    }));
+  };
+
+  const highlightWinningCombination = (combo) => {
+    combo.forEach((index) => {
+      boxRefs.current[index].current.classList.add('highlight');
+    });
   };
 
   const reset = () => {
     setLock(false);
-    data = ['', '', '', '', '', '', '', '', ''];
-    titleRef.current.innerHTML = 'Tic-Tac<span>-Toe</span>';
-    setCount(0);
-    setCurrentPlayer('Player 1');
-    setTimer(10); // Reset timer
-    boxRefs.forEach((boxRef) => {
-      boxRef.current.innerHTML = ''; // Clear the board
-      boxRef.current.classList.remove('highlight'); // Remove highlights
+    data.current = Array(9).fill('');
+    titleRef.current.textContent = 'Tic-Tac-Toe';
+    boxRefs.current.forEach((box) => {
+      box.current.innerHTML = '';
+      box.current.classList.remove('highlight');
     });
+    setCount(0);
+    resetTimer();
+    clearInterval(timerInterval.current);
+    startTimer();
   };
 
   return (
-    <div className='container'>
-      <h1 className='title' ref={titleRef}>
-        Tic-Tac<span>-Toe</span>
+    <div className="container">
+      <h1 className="title" ref={titleRef}>
+        Tic-Tac-<span>Toe</span>
       </h1>
-      <div className='info'>
-        <p>{currentPlayer}'s Turn</p>
-        <p>Time Left: {timer} sec</p>
-        <p>
-          Player 1 (X): {scores.Player1} | Player 2 (O): {scores.Player2}
-        </p>
+      <div className="info">Player {count % 2 === 0 ? '1' : '2'}'s Turn</div>
+      <div className="info">Time Left: {timer} sec</div>
+      <div className="info">
+        Player 1 (X): {score.player1} | Player 2 (O): {score.player2}
       </div>
-      <div className='board'>
-        {boxRefs.map((boxRef, index) => (
+      <div className="board">
+        {boxRefs.current.map((ref, index) => (
           <div
             key={index}
-            className='boxes'
-            ref={boxRef}
-            onClick={(e) => toggle(e, index)}
+            className="boxes"
+            ref={ref}
+            onClick={() => toggle(index)}
           ></div>
         ))}
       </div>
-      <button className='reset' onClick={reset}>
+      <button className="reset" onClick={reset}>
         Reset
       </button>
     </div>
