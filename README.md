@@ -24,7 +24,7 @@ Welcome to the **Tic-Tac-Toe Game** built with **React.js**! 🎮 This project i
 
 ## Live Demo 🌐
 
-Check out the live demo of the Tic-Tac-Toe game hosted at [Live Demo](#).
+Check out the live demo of the Tic-Tac-Toe game hosted at [http://tic-tac-toe-cyan-seven-30.vercel.app](#).
 
 ## Tech Stack ⚙️
 
